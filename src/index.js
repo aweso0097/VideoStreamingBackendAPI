@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import connectDB from "./db/index.js";
+import app from './app.js';
 
 connectDB()
 .then(() => {
@@ -8,7 +9,7 @@ connectDB()
     })
 })
 .catch((error) => {
-    console.log("MongoDB connection failed!!" ,err);
+    console.log("MongoDB connection failed!!" ,error);
 })
 
 
