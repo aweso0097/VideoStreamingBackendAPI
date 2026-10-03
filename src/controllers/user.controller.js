@@ -16,37 +16,36 @@ const registerUser = asyncHandler(async (req,res) => {
    //return response
 
    const {fullName,email,username,password} = req.body
-        console.log("email: ",email);
+        
 
         if(!fullName  || fullName.trim() == "" || !email || email.trim() == ""
-            || !username || username.trim() == "" || !password || password.trim()) {
+            || !username || username.trim() == "" || !password || password.trim() == "") {
             throw new ApiError(400,"All fields are required")
         }
-        const existedUser = User.findOne({
+        const existedUser = await User.findOne({
             $or: [{username}, {email}]
         })
         if(existedUser) {
             throw new ApiError(409,"Username or Email already Exists");
         }
+        // console.log(req.files);
 
+       const avatarLocalPath = req.files?.avatar?.[0]?.path;
+const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
-        const avatarLocalPath = req.files?.avatar[0]?.path;
-        const coverImageLocalPath = req.files?.coverImage[0]?.path;
+if (!avatarLocalPath) {
+    throw new ApiError(400, "Avatar File is required");
+}
 
-        if(!avatarLocalPath) {
-            throw new ApiError(400,"Avatar File is required")
-        }
-        const avatarUploadResponse = await uploadOnCloudinary(avatarLocalPath)
-        const localImageUploadResponse = await uploadOnCloudinary(coverImageLocalPath)
-
-        if(!avatarUploadResponse) {
-            throw new ApiError(500,"Avatar could not be uploaded")
-        }
+const avatarUploadResponse = await uploadOnCloudinary(avatarLocalPath);
+const coverImageUploadResponse = coverImageLocalPath
+    ? await uploadOnCloudinary(coverImageLocalPath)
+    : null;
 
         const user = await User.create({
             fullName,
             avatar:avatarUploadResponse.url,
-            coverImage:localImageUploadResponse?.url || "",
+            coverImage:coverImageUploadResponse?.url || "",
             email,
             password,
             username
