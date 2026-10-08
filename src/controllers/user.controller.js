@@ -207,6 +207,11 @@ const refreshAccessToken = asyncHandler(async (req,res) => {
 
 const changeCurrentPassword = asyncHandler(async (req,res) => {
     const {oldPassword,newPassword,confirmNewPassword} = req.body
+
+     if(confirmNewPassword !== newPassword) {
+        throw new ApiError(401,"Passwords do not match.")
+    }
+
     const  user = await User.findById(req.user?._id)
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
@@ -215,10 +220,7 @@ const changeCurrentPassword = asyncHandler(async (req,res) => {
     }
 
     user.password = newPassword
-    if(confirmNewPassword !== newPassword) {
-        throw new ApiError(401,"Passwords do not match.")
-    }
-
+   
     await user.save({validateBeforeSave:false})
 
     return res
@@ -251,7 +253,7 @@ const updateAccountDetails = asyncHandler(async (req,res) => {
         throw new ApiError(400,"All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user =await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set:{
@@ -283,7 +285,7 @@ const updateUserAvatar = asyncHandler(async (req,res) => {
 
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     if(!avatar.url) {
-        throw(400,"Error while uploading avatar URL")
+        throw new ApiError(400,"Error while uploading avatar URL")
     }
 
     const user = await User.findByIdAndUpdate(
