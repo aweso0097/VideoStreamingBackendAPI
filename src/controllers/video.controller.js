@@ -3,6 +3,7 @@ import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
+import mongoose from "mongoose";
 
 const publishAVideo = asyncHandler(async(req,res) => {
     //in publishing a video we need --->
@@ -57,4 +58,116 @@ const publishAVideo = asyncHandler(async(req,res) => {
 
 })
 
-export {publishAVideo}
+const getVideoById = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId?.trim()) {
+        throw new ApiError(400, "Video ID is missing");
+    }
+
+    
+    await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $inc: { views: 1 } 
+        }
+    );
+
+    // 2. Fetch the video and populate the owner details
+    const video = await Video.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(videoId) 
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner", // The field on the Video document
+                foreignField: "_id", // The field on the User document
+                as: "owner"
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner" 
+                }
+            }
+        },
+        {
+            $project: {
+                "owner.password": 0,
+                "owner.refreshToken": 0
+            }
+        }
+    ]);
+
+    if (!video?.length) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                video[0], 
+                "Video Fetched Successfully"
+            )
+        );
+});
+
+const updateVideo = asyncHandler(async(req,res) => {
+    const {title,description} = req.body
+    const {videoId} = req.params
+
+    if(!videoId) {
+         throw new ApiError(400,"Video ID is missing")
+    }
+
+    const thumbnailLocalPath = req.file?.path
+
+    if(!title && !description && !thumbnailLocalPath) {
+        throw new ApiError(400,"No field provided for update")
+    }
+
+    const updateFields = {}
+    if(title && title.trim() !== "") {
+        updateFields.title = title
+    }
+    if(description && description.trim() !== "") {
+        updateFields.description = description
+    }
+    if(thumbnailLocalPath) {
+        const newThumbnailResponse = await uploadOnCloudinary(thumbnailLocalPath)
+        if(!newThumbnailResponse) {
+            throw new ApiError(400,"Error while uploading the thumbnail to cloudinary")
+        }
+        updateFields.thumbnail = newThumbnailResponse.url
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId, {
+            $set: updateFields      
+        },{new:true}
+    )
+    if(!updatedVideo) {
+        throw new ApiError(404,"video Not Found")
+    }
+    
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            updatedVideo,
+            "Video details updated Successfully"
+        )
+    )
+})
+
+export {publishAVideo
+        ,getVideoById
+        ,updateVideo
+    }
