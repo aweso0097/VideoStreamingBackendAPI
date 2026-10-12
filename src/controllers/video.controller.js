@@ -1,7 +1,8 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import uploadOnCloudinary from "../utils/cloudinary.js";
+import {uploadOnCloudinary} from "../utils/cloudinary.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 import { Video } from "../models/video.model.js";
 import mongoose from "mongoose";
 
@@ -167,7 +168,40 @@ const updateVideo = asyncHandler(async(req,res) => {
     )
 })
 
+const deleteVideo = asyncHandler(async(req,res) => {
+    const { videoId }= req.params
+    if(!videoId) {
+        throw new ApiError(400,"Video Id is missing")
+    }
+    const video = await Video.findById(videoId)
+
+    if(!video) {
+        throw new ApiError(404,"Video not found in database")
+    }
+
+    const videoPublicId = video.videoFile.split('/').pop().split('.')[0]
+    const thumbnailPublicId = video.thumbnail.split('/').pop().split('.')[0]
+
+    await deleteFromCloudinary(videoPublicId,"video")
+    
+    await deleteFromCloudinary(thumbnailPublicId,"image")
+
+    await Video.findByIdAndDelete(videoId)
+
+    return res
+    .status(200)
+    .json (
+        new ApiResponse (
+            200,
+            {},
+            "Video Deleted Successfully"
+        )
+    )
+})
+
+
 export {publishAVideo
         ,getVideoById
         ,updateVideo
+        ,deleteVideo
     }
