@@ -44,7 +44,8 @@ const publishAVideo = asyncHandler(async(req,res) => {
         description,
         videoFile:videoUploadResponse.url,
         thumbnail:thumbnailUploadResponse.url,
-        duration:videoUploadResponse.duration
+        duration:videoUploadResponse.duration,
+        isPublished:true
     })
 
     return res
@@ -199,9 +200,93 @@ const deleteVideo = asyncHandler(async(req,res) => {
     )
 })
 
+const getAllVideos = asyncHandler(async(req, res) => {
+   
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
+    
+    const pageNumber  = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const skip = (pageNumber - 1) * limitNumber;
+
+    
+    const matchConditions = {
+        isPublished: true
+    };
+
+    if (userId) {
+        matchConditions.owner = new mongoose.Types.ObjectId(userId);
+    }
+
+    if (query) {
+        matchConditions.$or = [
+            { title: { $regex: query, $options: 'i' } },
+            { description: { $regex: query, $options: 'i' } }
+        ];
+    }
+
+   
+    const sortOptions = {};
+    if (sortBy && sortType) {
+        
+        sortOptions[sortBy] = sortType === "desc" ? -1 : 1;
+    } else {
+
+        sortOptions["createdAt"] = -1; 
+    }
+
+    
+    const feed = await Video.aggregate([
+        {
+            $match: matchConditions
+        },
+        {
+            $sort: sortOptions 
+        },
+        {
+            $skip: skip
+        },
+        {
+            $limit: limitNumber
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner"
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner" 
+                }
+            }
+        },
+        {
+            $project: {
+               
+                "owner.password": 0,
+                "owner.refreshToken": 0,
+                "owner.email": 0
+            }
+        }
+    ]);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                feed, 
+                "Videos Feed fetched successfully"
+            )
+        );
+});
 
 export {publishAVideo
         ,getVideoById
         ,updateVideo
         ,deleteVideo
+        ,getAllVideos
     }
