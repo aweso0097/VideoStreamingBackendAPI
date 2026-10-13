@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Tweet } from "../models/tweet.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -89,7 +90,73 @@ const deleteTweet = asyncHandler(async(req , res) => {
     )
 
 })
+
+const getUserTweets = asyncHandler(async(req , res) => {
+    const {userId} = req.params;
+    const { page  = 1,limit = 5} = req.query;
+
+    if(!userId) {
+        throw new ApiError(400, "User id is missing");
+    }
+
+    const pageNumber = parseInt(page,10)
+    const limitNumber = parseInt(limit,10)
+
+    const skip = (pageNumber - 1) * limitNumber
+
+    const tweets = await Tweet.aggregate([
+        {
+            $match: {
+                owner : new mongoose.Types.ObjectId(userId)
+            }
+        },
+        {
+            $sort : {
+                createdAt : -1
+            }
+        },
+        {
+            $skip : skip
+        },
+        {
+            $limit : limitNumber
+        },
+        {
+            $lookup : {
+                from  : "users",
+                localField : "owner",
+                foreignField : "_id",
+                as : "owner"
+            }
+        },
+        {
+            $addFields : {
+                owner : {
+                    $first : "$owner"
+                }
+            }
+        },
+        {
+            $project : {
+                "owner.password" : 0,
+                "owner.email" : 0,
+                "owner.refreshToken" :0
+            }
+        }
+    ])
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            tweets,
+            "Tweets feed fetched successfully"
+        )
+    )
+})
+
 export {createTweet
         ,updateTweet
         ,deleteTweet
+        ,getUserTweets
     }
