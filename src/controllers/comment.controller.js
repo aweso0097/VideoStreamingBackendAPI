@@ -94,7 +94,73 @@ const deleteComment = asyncHandler(async (req , res) => {
     )
 })
 
+const getVideoComments = asyncHandler(async (req , res) => { 
+    const {videoId} = req.params
+
+    const{page =1 , limit = 10} = req.query;
+
+    if(!videoId) {
+        throw new ApiError(400, " Video Id is missing")
+    }
+
+    const pageNumber = parseInt(page,10);
+    const limitNumber = parseInt(limit,10);
+
+    const skip = (pageNumber-1)*limitNumber
+
+    const comments = await Comment.aggregate([
+        {
+                $match : {
+                    video : new mongoose.Types.ObjectId(videoId)
+                }
+        },
+        {
+            $sort : {
+                createdAt : -1
+            }
+        },
+        {
+            $skip : skip
+        },
+        {
+            $limit : limitNumber
+        },
+        {
+            $lookup : {
+                from : "users",
+                localField : "owner",
+                foreignField: "_id",
+                as : "commenter"
+            }
+        },
+        {
+            $addFields : {
+                commenter : {
+                    $first : "$commenter"
+                }
+            }
+        },
+        {
+            $project : {
+                "commenter.email" : 0,
+                "commenter.password" : 0,
+                "commenter.refreshToken" : 0
+            }
+        }
+    ])
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                comments,
+                "Video comments fetched successfully"
+            )
+        );
+})
+
 export {addComment
         ,updateComment
         ,deleteComment
+        ,getVideoComments
         }
