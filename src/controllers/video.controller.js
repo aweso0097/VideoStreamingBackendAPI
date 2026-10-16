@@ -217,11 +217,8 @@ const getAllVideos = asyncHandler(async(req, res) => {
         matchConditions.owner = new mongoose.Types.ObjectId(userId);
     }
 
-    if (query) {
-        matchConditions.$or = [
-            { title: { $regex: query, $options: 'i' } },
-            { description: { $regex: query, $options: 'i' } }
-        ];
+    if (query && query.trim() !== "") {
+       matchConditions.$text = {$search : query.trim()}
     }
 
    

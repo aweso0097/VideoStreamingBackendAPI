@@ -1,6 +1,8 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import rateLimit from "express-rate-limit"
+import ExpressMongoSanitize from "express-mongo-sanitize"
 
 const app = express()
 
@@ -9,8 +11,27 @@ app.use(cors({
     credentials:true
 }))
 
+
+
+// Create a rate limiter: Maximum 50 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes in milliseconds
+    max: 50, // Limit each IP to 50 requests per windowMs
+    message: {
+        statusCode: 429,
+        success: false,
+        message: "Too many requests from this IP, please try again after 15 minutes."
+    },
+    standardHeaders: true, 
+    legacyHeaders: false, 
+});
+
+// Apply the rate limiter to all API routes
+app.use("/api/", apiLimiter);
+
 app.use(express.json({limit: '16kb'}))
 app.use(express.urlencoded({extended:true,limit: '16kb'}))
+app.use(ExpressMongoSanitize())
 app.use(express.static("public"))
 app.use(cookieParser())
 
