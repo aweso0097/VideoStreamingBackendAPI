@@ -22,20 +22,23 @@ import tweetRouter from './routes/tweet.route.js'
 import likeRouter from './routes/like.routes.js'
 import commentRouter from './routes/comment.route.js'
 import playlistRouter from './routes/playlist.route.js'
+import dashboardRouter from './routes/dashboard.routes.js'
 
 //routes declarataion
-app.use("/api/v1/users",userRouter)
+app.use("/api/v1/users",userRouter);
 
-app.use("/api/v1/videos",videoRouter)
+app.use("/api/v1/videos",videoRouter);
 
-app.use("/api/v1/subscriptions",subscriptionRouter)
+app.use("/api/v1/subscriptions",subscriptionRouter);
 
-app.use("/api/v1/tweets", tweetRouter)
+app.use("/api/v1/tweets", tweetRouter);
 
 app.use("/api/v1/like" , likeRouter);
 
 app.use("/api/v1/comment" ,commentRouter);
 
-app.use("/api/v1/playlist",playlistRouter)
+app.use("/api/v1/playlist",playlistRouter);
+
+app.use("/api/v1/stats",dashboardRouter);
 
 export default app
