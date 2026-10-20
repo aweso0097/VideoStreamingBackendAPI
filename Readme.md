@@ -39,7 +39,7 @@ npm install
 
 
 3. **Configure Environment Variables:**
-Create a `.env` file in the root directory and add the following keys (see `.env.sample` if available):
+Create a `.env` file in the root directory and add the following keys:
 ```env
 PORT=8000
 MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net
