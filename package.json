@@ -1,12 +1,12 @@
 {
-  "name": "chai-aur-backend",
+  "name": "Video Streaming Backend",
   "version": "1.0.0",
-  "description": "a backend with chai aur code",
+  "description": "a video streaming REST API",
   "type": "module",
   "keywords": [
     "javascript",
-    "backend",
-    "chai"
+    "video",
+    "mongoose"
   ],
   "license": "ISC",
   "author": "aweso",
